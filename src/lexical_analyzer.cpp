@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <cctype>
+#include <stdexcept>
 
 // Reserved words and symbols
 std::unordered_map<std::string, bool> reservedWords = {
@@ -30,8 +31,10 @@ std::vector<Token> lexicalAnalyzer(const std::string& input) {
                     tokens.push_back({RESERVED_WORD, buffer});
                 } else if (isdigit(buffer[0])) {
                     tokens.push_back({NUMBER, buffer});
-                } else {
+                } else if (isalpha(buffer[0]) || buffer[0] == '_') {
                     tokens.push_back({IDENTIFIER, buffer});
+                } else {
+                    throw std::runtime_error("Invalid identifier: " + buffer);
                 }
                 buffer.clear();
             }
@@ -45,8 +48,10 @@ std::vector<Token> lexicalAnalyzer(const std::string& input) {
                     tokens.push_back({RESERVED_WORD, buffer});
                 } else if (isdigit(buffer[0])) {
                     tokens.push_back({NUMBER, buffer});
-                } else {
+                } else if (isalpha(buffer[0]) || buffer[0] == '_') {
                     tokens.push_back({IDENTIFIER, buffer});
+                } else {
+                    throw std::runtime_error("Invalid identifier: " + buffer);
                 }
                 buffer.clear();
             }
@@ -64,11 +69,32 @@ std::vector<Token> lexicalAnalyzer(const std::string& input) {
             while (i + 1 < input.size() && input[++i] != '"') {
                 str += input[i];
             }
+            if (i >= input.size()) {
+                throw std::runtime_error("Unterminated string literal");
+            }
             tokens.push_back({STRING, str});
             continue;
         }
 
+        // Handle invalid characters
+        if (!isalnum(ch) && ch != '_') {
+            throw std::runtime_error("Unrecognized character: " + std::string(1, ch));
+        }
+
         buffer += ch;
+    }
+
+    // Handle any remaining buffer content
+    if (!buffer.empty()) {
+        if (reservedWords.find(buffer) != reservedWords.end()) {
+            tokens.push_back({RESERVED_WORD, buffer});
+        } else if (isdigit(buffer[0])) {
+            tokens.push_back({NUMBER, buffer});
+        } else if (isalpha(buffer[0]) || buffer[0] == '_') {
+            tokens.push_back({IDENTIFIER, buffer});
+        } else {
+            throw std::runtime_error("Invalid identifier: " + buffer);
+        }
     }
 
     return tokens;
@@ -94,4 +120,15 @@ void buildTokenTable(const std::vector<Token>& tokens) {
 
 void printTokenTable() {
     // Print token table logic
+}
+
+int main() {
+    std::string input = "int main() { return 0; }";
+    try {
+        std::vector<Token> tokens = lexicalAnalyzer(input);
+        printTokens(tokens);
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+    return 0;
 }
